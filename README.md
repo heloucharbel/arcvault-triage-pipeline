@@ -13,7 +13,34 @@ Built as a technical assessment for the AI Engineer role at Valsoft Corporation.
 5. **Escalation** - Flags records for human review based on confidence thresholds, outage keywords, and billing discrepancies
 6. **Output** - Writes all processed records to `output_records.json`
 
-## Quick Start
+## Option A: Run via n8n Cloud (Visual Workflow)
+
+The pipeline is also available as an n8n workflow that can be imported into [n8n Cloud](https://app.n8n.cloud) (free tier).
+
+### Setup
+
+1. Sign up at [n8n Cloud](https://app.n8n.cloud/register) (free)
+2. Create a **new blank workflow**
+3. Click on the empty canvas and press **Cmd+V** (Mac) or **Ctrl+V** (Windows) to paste the workflow from `arcvault_n8n_workflow.json`
+4. Double-click the **"Step 2 - LLM Classification & Enrichment"** node
+5. Replace `PASTE_YOUR_KEY_HERE` with your OpenAI API key
+6. Click **"Execute Workflow"**
+
+### Workflow Nodes
+
+```
+Manual Trigger
+  -> Step 1 - Ingest Sample Requests (loads 5 messages)
+    -> Step 2 - LLM Classification & Enrichment (OpenAI gpt-4o-mini)
+      -> Step 3 - Routing & Escalation Logic (deterministic rules)
+        -> Step 4 - Check Escalation (IF branch)
+            ├── YES -> Escalation Queue (flagged for human review)
+            └── NO  -> Standard Queue Routing (Engineering/Product/Billing/IT)
+```
+
+Click each node after execution to inspect its output.
+
+## Option B: Run via Python CLI
 
 ### Prerequisites
 
@@ -53,14 +80,15 @@ If `OPENAI_API_KEY` is set in the environment, the pipeline uses OpenAI's gpt-4o
 
 ```
 .
-├── pipeline.py           # Main pipeline script
-├── sample_inputs.json    # Five sample inbound requests
-├── output_records.json   # Generated output (after running)
-├── requirements.txt      # Python dependencies
-├── .env.example          # Environment variable template
-├── prompts.md            # Prompt documentation and rationale
-├── architecture.md       # System design and architecture write-up
-└── README.md             # This file
+├── pipeline.py                  # Main pipeline script (Python)
+├── arcvault_n8n_workflow.json   # n8n Cloud workflow (importable)
+├── sample_inputs.json           # Five sample inbound requests
+├── output_records.json          # Generated output (after running)
+├── requirements.txt             # Python dependencies
+├── .env.example                 # Environment variable template
+├── prompts.md                   # Prompt documentation and rationale
+├── architecture.md              # System design and architecture write-up
+└── README.md                    # This file
 ```
 
 ## Output Format
