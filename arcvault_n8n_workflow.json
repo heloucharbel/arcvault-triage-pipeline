@@ -1,0 +1,228 @@
+{
+  "name": "ArcVault Intake & Triage Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "inputData",
+              "value": "[{\"id\":1,\"source\":\"Email\",\"message\":\"Hi, I tried logging in this morning and keep getting a 403 error. My account is arcvault.io/user/jsmith. This started after your update last Tuesday.\"},{\"id\":2,\"source\":\"Web Form\",\"message\":\"We'd love to see a bulk export feature for our audit logs. We're a compliance-heavy org and this would save us hours every month.\"},{\"id\":3,\"source\":\"Support Portal\",\"message\":\"Invoice #8821 shows a charge of $1,240 but our contract rate is $980/month. Can someone look into this?\"},{\"id\":4,\"source\":\"Email\",\"message\":\"I'm not sure if this is the right place to ask, but is there a way to set up SSO with Okta? We're evaluating switching our auth provider.\"},{\"id\":5,\"source\":\"Web Form\",\"message\":\"Your dashboard stopped loading for us around 2pm EST. Checked our end — it's definitely on yours. Multiple users affected.\"}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-inputs-1",
+      "name": "Step 1 - Load Sample Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = JSON.parse($input.first().json.inputData);\nreturn inputData.map(item => ({ json: item }));"
+      },
+      "id": "code-split-1",
+      "name": "Split Into Individual Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "You are a precise JSON-outputting triage assistant for ArcVault, a B2B SaaS company. Return only valid JSON."
+            }
+          ]
+        },
+        "text": "=Analyze the following customer message and return a JSON object with these exact fields:\n\n{\n  \"category\": \"<one of: Bug Report, Feature Request, Billing Issue, Technical Question, Incident/Outage>\",\n  \"priority\": \"<one of: Low, Medium, High>\",\n  \"confidence_score\": <float between 0.0 and 1.0>,\n  \"core_issue\": \"<one sentence summarizing the core problem or request>\",\n  \"extracted_entities\": {\n    \"account_ids\": [\"<list of account IDs or URLs found>\"],\n    \"invoice_numbers\": [\"<list of invoice numbers found>\"],\n    \"error_codes\": [\"<list of error codes found>\"],\n    \"monetary_amounts\": [\"<list of dollar amounts found>\"],\n    \"systems_or_tools\": [\"<list of products, tools, or systems mentioned>\"],\n    \"urgency_signal\": \"<none | low | medium | high>\"\n  },\n  \"summary\": \"<2-3 sentence human-readable summary for the receiving team>\"\n}\n\nRules:\n- confidence_score should reflect how certain you are about the category assignment.\n- urgency_signal should be \"high\" if the message mentions outages, downtime, or multiple users affected.\n- Be precise with entity extraction. Only include entities actually present in the message.\n- Return ONLY valid JSON. No markdown, no explanation.\n\nCustomer message (source: {{ $json.source }}):\n\"\"\"{{ $json.message }}\"\"\"",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 600
+        }
+      },
+      "id": "openai-1",
+      "name": "Step 2 - LLM Classification & Enrichment",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [660, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const original = item.json;\n  \n  // Parse LLM response\n  let llmText = original.text || original.message?.content || '';\n  llmText = llmText.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n  \n  let classification;\n  try {\n    classification = JSON.parse(llmText);\n  } catch (e) {\n    const match = llmText.match(/\\{[\\s\\S]*\\}/);\n    if (match) {\n      classification = JSON.parse(match[0]);\n    } else {\n      classification = {\n        category: 'Unknown',\n        priority: 'Medium',\n        confidence_score: 0.0,\n        core_issue: 'Failed to parse LLM response',\n        extracted_entities: {\n          account_ids: [], invoice_numbers: [], error_codes: [],\n          monetary_amounts: [], systems_or_tools: [], urgency_signal: 'none'\n        },\n        summary: 'LLM response could not be parsed. Manual review required.'\n      };\n    }\n  }\n  \n  // Routing map\n  const routingMap = {\n    'Bug Report': 'Engineering Queue',\n    'Feature Request': 'Product Queue',\n    'Billing Issue': 'Billing Queue',\n    'Technical Question': 'IT/Security Queue',\n    'Incident/Outage': 'Escalation Queue'\n  };\n  \n  const category = classification.category;\n  const confidence = classification.confidence_score;\n  const message = original.message || '';\n  const messageLower = message.toLowerCase();\n  const destination = routingMap[category] || 'General Queue';\n  \n  // Escalation logic\n  const escalationReasons = [];\n  \n  if (confidence < 0.70) {\n    escalationReasons.push(`Low confidence score (${confidence} < 0.70)`);\n  }\n  \n  if (category === 'Incident/Outage') {\n    escalationReasons.push('Category is Incident/Outage');\n  }\n  \n  const keywords = ['outage', 'down', 'stopped loading', 'unavailable', 'all users affected', 'multiple users affected'];\n  for (const kw of keywords) {\n    if (messageLower.includes(kw)) {\n      escalationReasons.push(`Message contains escalation keyword: '${kw}'`);\n      break;\n    }\n  }\n  \n  if (category === 'Billing Issue') {\n    const amounts = classification.extracted_entities?.monetary_amounts || [];\n    const values = amounts.map(a => parseFloat(String(a).replace(/[^\\d.]/g, ''))).filter(v => !isNaN(v));\n    if (values.length >= 2) {\n      const discrepancy = Math.abs(values[0] - values[1]);\n      if (discrepancy > 500) {\n        escalationReasons.push(`Billing discrepancy $${discrepancy} exceeds $500 threshold`);\n      }\n    }\n  }\n  \n  const escalate = escalationReasons.length > 0;\n  \n  results.push({\n    json: {\n      request_id: original.id,\n      source: original.source,\n      raw_message: original.message,\n      timestamp: new Date().toISOString(),\n      classification: {\n        category: classification.category,\n        priority: classification.priority,\n        confidence_score: classification.confidence_score\n      },\n      enrichment: {\n        core_issue: classification.core_issue,\n        extracted_entities: classification.extracted_entities\n      },\n      routing: {\n        routed_to: escalate ? 'Escalation Queue' : destination,\n        escalation_flag: escalate,\n        escalation_reasons: escalationReasons\n      },\n      summary: classification.summary\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "code-routing-1",
+      "name": "Step 3 - Routing & Escalation Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.routing.escalation_flag }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-escalation-1",
+      "name": "Step 4 - Check Escalation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "ESCALATED - Routed to Escalation Queue for human review"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-escalated-1",
+      "name": "Escalation Queue",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1320, 180]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "=Routed to {{ $json.routing.routed_to }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-standard-1",
+      "name": "Standard Queue Routing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1320, 420]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Step 1 - Load Sample Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 1 - Load Sample Inputs": {
+      "main": [
+        [
+          {
+            "node": "Split Into Individual Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Individual Requests": {
+      "main": [
+        [
+          {
+            "node": "Step 2 - LLM Classification & Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 2 - LLM Classification & Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Step 3 - Routing & Escalation Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 3 - Routing & Escalation Logic": {
+      "main": [
+        [
+          {
+            "node": "Step 4 - Check Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 4 - Check Escalation": {
+      "main": [
+        [
+          {
+            "node": "Escalation Queue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Standard Queue Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "pinData": {}
+}
