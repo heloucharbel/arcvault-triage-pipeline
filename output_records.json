@@ -3,14 +3,14 @@
     "request_id": 1,
     "source": "Email",
     "raw_message": "Hi, I tried logging in this morning and keep getting a 403 error. My account is arcvault.io/user/jsmith. This started after your update last Tuesday.",
-    "timestamp": "2026-05-14T16:02:48.419242+00:00",
+    "timestamp": "2026-05-14T16:31:52.953951+00:00",
     "classification": {
       "category": "Bug Report",
       "priority": "High",
-      "confidence_score": 0.92
+      "confidence_score": 0.9
     },
     "enrichment": {
-      "core_issue": "User is receiving a 403 error when attempting to log in, started after a recent platform update.",
+      "core_issue": "User is experiencing a 403 error when trying to log in after a recent update.",
       "extracted_entities": {
         "account_ids": [
           "arcvault.io/user/jsmith"
@@ -20,10 +20,8 @@
           "403"
         ],
         "monetary_amounts": [],
-        "systems_or_tools": [
-          "ArcVault login"
-        ],
-        "urgency_signal": "medium"
+        "systems_or_tools": [],
+        "urgency_signal": "high"
       }
     },
     "routing": {
@@ -31,30 +29,27 @@
       "escalation_flag": false,
       "escalation_reasons": []
     },
-    "summary": "A user reports being unable to log in due to a persistent 403 error tied to their account. The issue began after a platform update last Tuesday. This should be investigated as a potential regression from the recent release."
+    "summary": "The customer is unable to log in due to a 403 error, which they believe started after a recent update. This issue may affect their access to the platform."
   },
   {
     "request_id": 2,
     "source": "Web Form",
     "raw_message": "We'd love to see a bulk export feature for our audit logs. We're a compliance-heavy org and this would save us hours every month.",
-    "timestamp": "2026-05-14T16:02:48.419617+00:00",
+    "timestamp": "2026-05-14T16:32:00.136096+00:00",
     "classification": {
       "category": "Feature Request",
       "priority": "Medium",
-      "confidence_score": 0.95
+      "confidence_score": 0.9
     },
     "enrichment": {
-      "core_issue": "Customer requests a bulk export feature for audit logs to support compliance workflows.",
+      "core_issue": "Customer is requesting a bulk export feature for audit logs.",
       "extracted_entities": {
         "account_ids": [],
         "invoice_numbers": [],
         "error_codes": [],
         "monetary_amounts": [],
-        "systems_or_tools": [
-          "audit logs",
-          "bulk export"
-        ],
-        "urgency_signal": "low"
+        "systems_or_tools": [],
+        "urgency_signal": "none"
       }
     },
     "routing": {
@@ -62,35 +57,32 @@
       "escalation_flag": false,
       "escalation_reasons": []
     },
-    "summary": "A compliance-focused customer is requesting a bulk export capability for audit logs. They indicate this would save significant manual effort each month. This is a feature enhancement request with no immediate urgency."
+    "summary": "The customer is requesting a new feature that would allow for bulk export of audit logs. This feature is important for their compliance needs and would significantly reduce their workload."
   },
   {
     "request_id": 3,
     "source": "Support Portal",
     "raw_message": "Invoice #8821 shows a charge of $1,240 but our contract rate is $980/month. Can someone look into this?",
-    "timestamp": "2026-05-14T16:02:48.419677+00:00",
+    "timestamp": "2026-05-14T16:32:04.603349+00:00",
     "classification": {
       "category": "Billing Issue",
-      "priority": "High",
-      "confidence_score": 0.96
+      "priority": "Medium",
+      "confidence_score": 0.9
     },
     "enrichment": {
-      "core_issue": "Invoice #8821 shows a charge of $1,240 versus the contracted rate of $980/month \u2014 a $260 billing discrepancy.",
+      "core_issue": "The customer is inquiring about a discrepancy in their invoice charge compared to their contract rate.",
       "extracted_entities": {
         "account_ids": [],
         "invoice_numbers": [
-          "#8821"
+          "8821"
         ],
         "error_codes": [],
         "monetary_amounts": [
-          "$1,240",
-          "$980"
+          1240,
+          980
         ],
-        "systems_or_tools": [
-          "billing",
-          "invoicing"
-        ],
-        "urgency_signal": "medium"
+        "systems_or_tools": [],
+        "urgency_signal": "none"
       }
     },
     "routing": {
@@ -98,52 +90,50 @@
       "escalation_flag": false,
       "escalation_reasons": []
     },
-    "summary": "The customer reports a billing discrepancy on Invoice #8821. They were charged $1,240 but their contract rate is $980/month, resulting in a $260 overcharge. The billing team should review the invoice and contract terms."
+    "summary": "The customer has reported a billing discrepancy regarding Invoice #8821, where the charge is higher than the agreed contract rate. They are requesting assistance to resolve this issue."
   },
   {
     "request_id": 4,
     "source": "Email",
     "raw_message": "I'm not sure if this is the right place to ask, but is there a way to set up SSO with Okta? We're evaluating switching our auth provider.",
-    "timestamp": "2026-05-14T16:02:48.419684+00:00",
+    "timestamp": "2026-05-14T16:32:11.884350+00:00",
     "classification": {
-      "category": "Technical Question",
-      "priority": "Low",
-      "confidence_score": 0.88
+      "category": "Feature Request",
+      "priority": "Medium",
+      "confidence_score": 0.85
     },
     "enrichment": {
-      "core_issue": "Customer is asking whether ArcVault supports SSO integration with Okta.",
+      "core_issue": "Customer is inquiring about setting up SSO with Okta as an authentication provider.",
       "extracted_entities": {
         "account_ids": [],
         "invoice_numbers": [],
         "error_codes": [],
         "monetary_amounts": [],
         "systems_or_tools": [
-          "SSO",
-          "Okta",
-          "auth provider"
+          "Okta"
         ],
         "urgency_signal": "none"
       }
     },
     "routing": {
-      "routed_to": "IT/Security Queue",
+      "routed_to": "Product Queue",
       "escalation_flag": false,
       "escalation_reasons": []
     },
-    "summary": "A customer is evaluating whether ArcVault supports SSO with Okta as they consider switching authentication providers. This is a pre-sales or technical configuration question with no urgency. Route to IT/Security for a capability response."
+    "summary": "The customer is looking for information on how to set up Single Sign-On (SSO) with Okta. They are currently evaluating a switch in their authentication provider."
   },
   {
     "request_id": 5,
     "source": "Web Form",
     "raw_message": "Your dashboard stopped loading for us around 2pm EST. Checked our end \u2014 it's definitely on yours. Multiple users affected.",
-    "timestamp": "2026-05-14T16:02:48.419844+00:00",
+    "timestamp": "2026-05-14T16:32:15.088774+00:00",
     "classification": {
       "category": "Incident/Outage",
       "priority": "High",
-      "confidence_score": 0.97
+      "confidence_score": 0.95
     },
     "enrichment": {
-      "core_issue": "ArcVault dashboard stopped loading around 2pm EST, affecting multiple users.",
+      "core_issue": "The dashboard is not loading, affecting multiple users.",
       "extracted_entities": {
         "account_ids": [],
         "invoice_numbers": [],
@@ -163,6 +153,6 @@
         "Message contains escalation keyword: 'stopped loading'"
       ]
     },
-    "summary": "A customer reports that the ArcVault dashboard stopped loading at approximately 2pm EST. They have confirmed the issue is not on their end and that multiple users are affected. This is a potential service outage requiring immediate investigation."
+    "summary": "The customer reports that their dashboard stopped loading around 2pm EST, confirming the issue is on our end. Multiple users are affected, indicating a significant outage."
   }
 ]
